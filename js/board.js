@@ -508,7 +508,7 @@
       const onTouchMove = (e) => {
         if (!isTouchActive || !e.touches || e.touches.length === 0) return;
         const t = e.touches[0];
-        if (isDragging) {
+        if (startSquare || isDragging) {
           try { if (e.cancelable) e.preventDefault(); } catch (_) {}
         }
         handlePressMove(t.clientX, t.clientY);
@@ -520,21 +520,34 @@
         const t = (e.changedTouches && e.changedTouches.length > 0) ? e.changedTouches[0] : (e.touches && e.touches.length > 0 ? e.touches[0] : null);
         const cx = t ? t.clientX : lastX;
         const cy = t ? t.clientY : lastY;
-        if (isDragging) {
-          try { if (e.cancelable) e.preventDefault(); } catch (_) {}
-        }
+        try { if (e.cancelable) e.preventDefault(); } catch (_) {}
         handlePressEnd(cx, cy);
       };
 
-      const onTouchCancel = () => {
+      const onTouchCancel = (e) => {
+        if (!isTouchActive) return;
         isTouchActive = false;
-        cleanupDrag();
+        const t = (e && e.changedTouches && e.changedTouches.length > 0) ? e.changedTouches[0] : null;
+        const cx = t ? t.clientX : lastX;
+        const cy = t ? t.clientY : lastY;
+        handlePressEnd(cx, cy);
       };
 
+      // Register touch listeners on boardElement, document, and window for 100% Android WebView coverage
       this.boardElement.addEventListener('touchstart', onTouchStart, { passive: false });
+      this.boardElement.addEventListener('touchmove', onTouchMove, { passive: false });
+      this.boardElement.addEventListener('touchend', onTouchEnd, { passive: false });
+      this.boardElement.addEventListener('touchcancel', onTouchCancel, { passive: false });
+
+      if (typeof document !== 'undefined' && document.addEventListener) {
+        document.addEventListener('touchmove', onTouchMove, { passive: false });
+        document.addEventListener('touchend', onTouchEnd, { passive: false });
+        document.addEventListener('touchcancel', onTouchCancel, { passive: false });
+      }
+
       window.addEventListener('touchmove', onTouchMove, { passive: false });
       window.addEventListener('touchend', onTouchEnd, { passive: false });
-      window.addEventListener('touchcancel', onTouchCancel);
+      window.addEventListener('touchcancel', onTouchCancel, { passive: false });
 
       // 2. Mouse / Pointer Events (Desktop & unified touch fallback)
       const onPointerDown = (e) => {
@@ -553,6 +566,10 @@
       };
 
       this.boardElement.addEventListener('pointerdown', onPointerDown);
+      if (typeof document !== 'undefined' && document.addEventListener) {
+        document.addEventListener('pointermove', onPointerMove);
+        document.addEventListener('pointerup', onPointerUp);
+      }
       window.addEventListener('pointermove', onPointerMove);
       window.addEventListener('pointerup', onPointerUp);
       window.addEventListener('blur', cleanupDrag);
@@ -560,7 +577,17 @@
       this._cleanupPointerListeners = () => {
         if (this.boardElement) {
           this.boardElement.removeEventListener('touchstart', onTouchStart);
+          this.boardElement.removeEventListener('touchmove', onTouchMove);
+          this.boardElement.removeEventListener('touchend', onTouchEnd);
+          this.boardElement.removeEventListener('touchcancel', onTouchCancel);
           this.boardElement.removeEventListener('pointerdown', onPointerDown);
+        }
+        if (typeof document !== 'undefined' && document.removeEventListener) {
+          document.removeEventListener('touchmove', onTouchMove);
+          document.removeEventListener('touchend', onTouchEnd);
+          document.removeEventListener('touchcancel', onTouchCancel);
+          document.removeEventListener('pointermove', onPointerMove);
+          document.removeEventListener('pointerup', onPointerUp);
         }
         window.removeEventListener('touchmove', onTouchMove);
         window.removeEventListener('touchend', onTouchEnd);
