@@ -143,15 +143,15 @@
       if (!this.boardElement) return null;
       const rect = this.boardElement.getBoundingClientRect();
       if (
-        clientX < rect.left ||
-        clientX > rect.right ||
-        clientY < rect.top ||
-        clientY > rect.bottom
+        clientX < rect.left - 15 ||
+        clientX > rect.right + 15 ||
+        clientY < rect.top - 15 ||
+        clientY > rect.bottom + 15
       ) {
         return null;
       }
-      const relX = clientX - rect.left;
-      const relY = clientY - rect.top;
+      const relX = Math.max(0, Math.min(rect.width - 1, clientX - rect.left));
+      const relY = Math.max(0, Math.min(rect.height - 1, clientY - rect.top));
       const fIdx = Math.min(7, Math.max(0, Math.floor((relX / rect.width) * 8)));
       const rIdx = Math.min(7, Math.max(0, Math.floor((relY / rect.height) * 8)));
       const files = this.orientation === 'b' ? ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a'] : ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
@@ -269,13 +269,11 @@
         if (activePointerId !== null && e.pointerId !== activePointerId) return;
 
         try {
-          if (e.target && e.target.setPointerCapture) {
-            e.target.setPointerCapture(e.pointerId);
-          }
+          if (e.preventDefault) e.preventDefault();
         } catch (_) {}
 
-        const sq = this.getSquareFromPoint(e.clientX, e.clientY) ||
-                   e.target.closest('.board-sq')?.dataset?.square;
+        const sqEl = e.target ? e.target.closest('.board-sq') : null;
+        const sq = (sqEl && sqEl.dataset && sqEl.dataset.square) ? sqEl.dataset.square : this.getSquareFromPoint(e.clientX, e.clientY);
         if (!sq) return;
 
         activePointerId = e.pointerId;
@@ -418,13 +416,62 @@
       window.addEventListener('pointercancel', onPointerCancel);
       window.addEventListener('blur', cleanupDrag);
 
+      // Touch events safety net for Android WebView
+      const onTouchStart = (e) => {
+        if (!e.touches || e.touches.length === 0) return;
+        if (activePointerId !== null) return;
+        try { if (e.cancelable) e.preventDefault(); } catch (_) {}
+        const t = e.touches[0];
+        const el = document.elementFromPoint(t.clientX, t.clientY);
+        onPointerDown({
+          pointerId: 9999,
+          pointerType: 'touch',
+          clientX: t.clientX,
+          clientY: t.clientY,
+          target: el,
+          preventDefault: () => {}
+        });
+      };
+      const onTouchMove = (e) => {
+        if (activePointerId !== 9999 || !e.touches || e.touches.length === 0) return;
+        try { if (e.cancelable) e.preventDefault(); } catch (_) {}
+        const t = e.touches[0];
+        onPointerMove({
+          pointerId: 9999,
+          pointerType: 'touch',
+          clientX: t.clientX,
+          clientY: t.clientY,
+          preventDefault: () => {}
+        });
+      };
+      const onTouchEnd = (e) => {
+        if (activePointerId !== 9999) return;
+        try { if (e.cancelable) e.preventDefault(); } catch (_) {}
+        const t = (e.changedTouches && e.changedTouches.length > 0) ? e.changedTouches[0] : (e.touches && e.touches.length > 0 ? e.touches[0] : { clientX: startX, clientY: startY });
+        onPointerUp({
+          pointerId: 9999,
+          pointerType: 'touch',
+          clientX: t.clientX,
+          clientY: t.clientY
+        });
+      };
+
+      this.boardElement.addEventListener('touchstart', onTouchStart, { passive: false });
+      window.addEventListener('touchmove', onTouchMove, { passive: false });
+      window.addEventListener('touchend', onTouchEnd, { passive: false });
+      window.addEventListener('touchcancel', cleanupDrag);
+
       this._cleanupPointerListeners = () => {
         if (this.boardElement) {
           this.boardElement.removeEventListener('pointerdown', onPointerDown);
+          this.boardElement.removeEventListener('touchstart', onTouchStart);
         }
         window.removeEventListener('pointermove', onPointerMove);
         window.removeEventListener('pointerup', onPointerUp);
         window.removeEventListener('pointercancel', onPointerCancel);
+        window.removeEventListener('touchmove', onTouchMove);
+        window.removeEventListener('touchend', onTouchEnd);
+        window.removeEventListener('touchcancel', cleanupDrag);
         window.removeEventListener('blur', cleanupDrag);
       };
     }
