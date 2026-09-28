@@ -61,16 +61,17 @@ public class MainActivity extends Activity {
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         
-        // High-DPI viewport support
-        settings.setUseWideViewPort(true);
-        settings.setLoadWithOverviewMode(true);
+        // 1:1 CSS Touch Viewport (Prevents coordinate scaling mismatches)
+        settings.setUseWideViewPort(false);
+        settings.setLoadWithOverviewMode(false);
         
         // Mark as native app in User-Agent
         String customUa = settings.getUserAgentString() + " XCodeChessNativeApp/1.0";
         settings.setUserAgentString(customUa);
 
-        // Hardware acceleration
+        // Hardware acceleration & smooth scrolling
         mWebView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        mWebView.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
         mWebView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {

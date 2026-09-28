@@ -130,6 +130,12 @@
           pieceHolder.className = 'sq-piece';
           sqDiv.appendChild(pieceHolder);
 
+          // Direct click listener: instant tap-to-move on moveable squares
+          sqDiv.addEventListener('click', (e) => {
+            if (this._recentlyDragged) return;
+            this.handleSquareClick(sq, e);
+          });
+
           boardElement.appendChild(sqDiv);
           this.squareElements[sq] = sqDiv;
         }
@@ -139,14 +145,67 @@
       this.setupPointerInteraction();
     }
 
+    findNearestLegalSquare(clientX, clientY, legalSquares) {
+      if (!legalSquares || legalSquares.length === 0) return null;
+
+      // 1. Direct hit check
+      const directSq = this.getSquareFromPoint(clientX, clientY);
+      if (directSq && legalSquares.includes(directSq)) {
+        return directSq;
+      }
+
+      // 2. Measure square size for magnetic snap calculation
+      let sqWidth = 45;
+      if (this.boardElement) {
+        const bRect = this.boardElement.getBoundingClientRect();
+        if (bRect.width > 0) sqWidth = bRect.width / 8;
+      }
+      const maxMagneticDistance = sqWidth * 1.5; // Snap if within 1.5 square widths
+
+      let bestSq = null;
+      let minDistance = Infinity;
+
+      for (let i = 0; i < legalSquares.length; i++) {
+        const sq = legalSquares[i];
+        const el = this.squareElements[sq];
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        const centerX = r.left + r.width / 2;
+        const centerY = r.top + r.height / 2;
+        const dist = Math.hypot(clientX - centerX, clientY - centerY);
+
+        if (dist < minDistance) {
+          minDistance = dist;
+          bestSq = sq;
+        }
+      }
+
+      if (minDistance <= maxMagneticDistance) {
+        return bestSq;
+      }
+      return null;
+    }
+
     getSquareFromPoint(clientX, clientY) {
       if (!this.boardElement) return null;
+
+      // 1. Direct DOM elementFromPoint lookup
+      try {
+        const el = document.elementFromPoint(clientX, clientY);
+        const sqEl = el?.closest('.board-sq');
+        if (sqEl && sqEl.dataset && sqEl.dataset.square) {
+          return sqEl.dataset.square;
+        }
+      } catch (_) {}
+
+      // 2. Bounding rectangle math lookup
       const rect = this.boardElement.getBoundingClientRect();
+      const margin = 25;
       if (
-        clientX < rect.left - 15 ||
-        clientX > rect.right + 15 ||
-        clientY < rect.top - 15 ||
-        clientY > rect.bottom + 15
+        clientX < rect.left - margin ||
+        clientX > rect.right + margin ||
+        clientY < rect.top - margin ||
+        clientY > rect.bottom + margin
       ) {
         return null;
       }
@@ -225,19 +284,57 @@
       this._currentDragHoverSq = null;
     }
 
+    handleSquareClick(sq, event) {
+      if (!this.interactive || !this.chess) return;
+
+      const piece = this.chess.get(sq);
+
+      // Case 1: A piece was ALREADY selected on the board
+      if (this.selectedSquare) {
+        // 1a. Clicked same square -> Deselect
+        if (this.selectedSquare === sq) {
+          this.clearSelection();
+          return;
+        }
+
+        // 1b. Clicked a moveable destination -> Execute Move!
+        const moved = this.attemptMove(this.selectedSquare, sq);
+        if (moved) return;
+
+        // 1c. Clicked another friendly piece -> Switch selection
+        if (piece && piece.color === this.chess.turn) {
+          this.selectSquare(sq);
+          return;
+        }
+
+        // 1d. Clicked an invalid/empty square -> Deselect
+        this.clearSelection();
+        return;
+      }
+
+      // Case 2: No piece previously selected
+      if (piece && piece.color === this.chess.turn) {
+        this.selectSquare(sq);
+      }
+    }
+
     setupPointerInteraction() {
       if (this._cleanupPointerListeners) {
         this._cleanupPointerListeners();
         this._cleanupPointerListeners = null;
       }
 
-      let activePointerId = null;
+      let isDragging = false;
       let startSquare = null;
       let startX = 0;
       let startY = 0;
-      let isDragging = false;
+      let lastX = 0;
+      let lastY = 0;
       let dragEl = null;
       let dragPieceHolder = null;
+      let activeLegalDests = [];
+      let isTouchActive = false;
+      let previousSelectedSquare = null;
 
       const cleanupDrag = () => {
         this.clearDragHover();
@@ -257,78 +354,62 @@
           const ph = this.squareElements[s].querySelector('.sq-piece');
           if (ph) ph.style.opacity = '1';
         }
-        activePointerId = null;
         isDragging = false;
         startSquare = null;
+        activeLegalDests = [];
       };
 
       this.cleanupAllClones = cleanupDrag;
 
-      const onPointerDown = (e) => {
+      // Handle press start
+      const handlePressStart = (clientX, clientY, targetEl) => {
         if (!this.interactive || !this.chess) return;
-        if (activePointerId !== null && e.pointerId !== activePointerId) return;
 
-        try {
-          if (e.preventDefault) e.preventDefault();
-        } catch (_) {}
-
-        const sqEl = e.target ? e.target.closest('.board-sq') : null;
-        const sq = (sqEl && sqEl.dataset && sqEl.dataset.square) ? sqEl.dataset.square : this.getSquareFromPoint(e.clientX, e.clientY);
+        const sq = this.getSquareFromPoint(clientX, clientY) ||
+                   targetEl?.closest('.board-sq')?.dataset?.square;
         if (!sq) return;
 
-        activePointerId = e.pointerId;
-        startX = e.clientX;
-        startY = e.clientY;
+        startX = clientX;
+        startY = clientY;
+        lastX = clientX;
+        lastY = clientY;
         isDragging = false;
         startSquare = sq;
+        previousSelectedSquare = this.selectedSquare;
 
         const piece = this.chess.get(sq);
+        const isFriendly = piece && piece.color === this.chess.turn;
 
-        // Case 1: A piece was ALREADY selected on the board
-        if (this.selectedSquare) {
-          // 1a. Tapped the same square -> Deselect
-          if (this.selectedSquare === sq) {
-            this.clearSelection();
+        // Check if user clicked/tapped a moveable square for currently selected piece
+        if (this.selectedSquare && this.selectedSquare !== sq) {
+          const legalMoves = this.chess.moves({ square: this.selectedSquare, verbose: true });
+          const isLegalDest = legalMoves.some(m => m.to === sq);
+          if (isLegalDest) {
+            // TAP-TO-MOVE / CLICK-MOVEABLE-SQUARE INSTANT TRIGGER!
+            this.attemptMove(this.selectedSquare, sq);
             startSquare = null;
             return;
           }
-
-          // 1b. Try to make move from selectedSquare to sq (Tap-to-Move!)
-          const moved = this.attemptMove(this.selectedSquare, sq);
-          if (moved) {
-            startSquare = null;
-            return;
-          }
-
-          // 1c. Tapped another friendly piece -> Switch selection
-          if (piece && piece.color === this.chess.turn) {
-            this.selectSquare(sq);
-            startSquare = sq;
-            return;
-          }
-
-          // 1d. Tapped an invalid/empty square -> Deselect
-          this.clearSelection();
-          startSquare = null;
-          return;
         }
 
-        // Case 2: No piece previously selected
-        if (piece && piece.color === this.chess.turn) {
+        // Cache legal moves for potential drag or selection
+        if (isFriendly) {
+          activeLegalDests = this.chess.moves({ square: sq, verbose: true }).map(m => m.to);
           this.selectSquare(sq);
-          startSquare = sq;
         } else {
-          startSquare = null;
+          activeLegalDests = [];
         }
       };
 
-      const onPointerMove = (e) => {
-        if (activePointerId === null || e.pointerId !== activePointerId) return;
+      // Handle press move
+      const handlePressMove = (clientX, clientY) => {
         if (!startSquare) return;
+        lastX = clientX;
+        lastY = clientY;
 
-        const dist = Math.hypot(e.clientX - startX, e.clientY - startY);
+        const dist = Math.hypot(clientX - startX, clientY - startY);
 
-        // Start drag mode if moved past 5px
+        // Initiate drag if moved past 5px threshold
         if (!isDragging && dist > 5) {
           const piece = this.chess.get(startSquare);
           if (!piece || piece.color !== this.chess.turn) return;
@@ -348,130 +429,144 @@
           const size = sqEl.getBoundingClientRect().width;
           dragEl.style.width = `${size}px`;
           dragEl.style.height = `${size}px`;
-
-          // Mobile touch ergonomics: offset slightly above finger so thumb doesn't obscure target
-          const isTouch = e.pointerType === 'touch';
-          const offsetY = isTouch ? -size * 0.35 : 0;
-          dragEl.dataset.offsetY = offsetY;
-
-          dragEl.style.left = `${e.clientX - size / 2}px`;
-          dragEl.style.top = `${e.clientY - size / 2 + offsetY}px`;
+          dragEl.style.left = `${clientX - size / 2}px`;
+          dragEl.style.top = `${clientY - size / 2}px`;
           document.body.appendChild(dragEl);
 
-          // Fade piece on original square
+          // Fade original piece
           pieceHolder.style.opacity = '0.2';
         }
 
         if (isDragging && dragEl) {
-          try { e.preventDefault(); } catch (_) {}
           const size = parseFloat(dragEl.style.width) || 50;
-          const offsetY = parseFloat(dragEl.dataset.offsetY) || 0;
-          dragEl.style.left = `${e.clientX - size / 2}px`;
-          dragEl.style.top = `${e.clientY - size / 2 + offsetY}px`;
+          dragEl.style.left = `${clientX - size / 2}px`;
+          dragEl.style.top = `${clientY - size / 2}px`;
 
-          // Update Chess.com hover shadow on the target square!
-          const hoverSq = this.getSquareFromPoint(e.clientX, e.clientY) ||
-                          document.elementFromPoint(e.clientX, e.clientY)?.closest('.board-sq')?.dataset?.square;
-          this.updateDragHover(hoverSq);
+          // Dynamic magnetic snap hover to nearest legal square!
+          const nearestLegalSq = this.findNearestLegalSquare(clientX, clientY, activeLegalDests);
+          this.updateDragHover(nearestLegalSq);
         }
       };
 
-      const onPointerUp = (e) => {
-        if (activePointerId === null || e.pointerId !== activePointerId) return;
-
+      // Handle press release
+      const handlePressEnd = (clientX, clientY) => {
         const wasDragging = isDragging;
         const fromSq = startSquare;
-        const clientX = e.clientX;
-        const clientY = e.clientY;
+        const hoverSq = this._currentDragHoverSq;
+        const finalX = (clientX !== undefined && !isNaN(clientX) && clientX > 0) ? clientX : lastX;
+        const finalY = (clientY !== undefined && !isNaN(clientY) && clientY > 0) ? clientY : lastY;
+
+        if (wasDragging) {
+          this._recentlyDragged = true;
+          setTimeout(() => { this._recentlyDragged = false; }, 120);
+        }
 
         cleanupDrag();
 
         if (wasDragging && fromSq) {
-          // Find target square under pointer release
-          const targetSq = this.getSquareFromPoint(clientX, clientY) ||
-                           document.elementFromPoint(clientX, clientY)?.closest('.board-sq')?.dataset?.square;
+          // DRAG & DROP RELEASE: Land on magnetic nearest legal square or direct hit!
+          const targetSq = hoverSq ||
+                           this.findNearestLegalSquare(finalX, finalY, activeLegalDests) ||
+                           this.getSquareFromPoint(finalX, finalY);
 
           if (targetSq && targetSq !== fromSq) {
             const moved = this.attemptMove(fromSq, targetSq);
             if (!moved) {
-              // Illegal drop: snap back, keep piece selected with legal moves
               this.selectSquare(fromSq);
             }
           } else {
-            // Dropped back on same square: keep piece selected for tap-to-move
             this.selectSquare(fromSq);
+          }
+        } else if (!wasDragging && fromSq) {
+          // TAP / CLICK RELEASE:
+          if (fromSq === previousSelectedSquare) {
+            // Tapped the already-selected piece again -> Deselect!
+            this.clearSelection();
           }
         }
       };
 
-      const onPointerCancel = (e) => {
-        if (activePointerId !== null && e.pointerId === activePointerId) {
-          cleanupDrag();
-        }
-      };
+      let lastTouchTime = 0;
 
-      this.boardElement.addEventListener('pointerdown', onPointerDown);
-      window.addEventListener('pointermove', onPointerMove, { passive: false });
-      window.addEventListener('pointerup', onPointerUp);
-      window.addEventListener('pointercancel', onPointerCancel);
-      window.addEventListener('blur', cleanupDrag);
-
-      // Touch events safety net for Android WebView
+      // 1. Native Mobile Touch Events (Primary on Android & iOS)
       const onTouchStart = (e) => {
         if (!e.touches || e.touches.length === 0) return;
-        if (activePointerId !== null) return;
-        try { if (e.cancelable) e.preventDefault(); } catch (_) {}
+        lastTouchTime = Date.now();
+        isTouchActive = true;
         const t = e.touches[0];
-        const el = document.elementFromPoint(t.clientX, t.clientY);
-        onPointerDown({
-          pointerId: 9999,
-          pointerType: 'touch',
-          clientX: t.clientX,
-          clientY: t.clientY,
-          target: el,
-          preventDefault: () => {}
-        });
+        const sq = this.getSquareFromPoint(t.clientX, t.clientY) || t.target?.closest('.board-sq')?.dataset?.square;
+        const piece = sq && this.chess ? this.chess.get(sq) : null;
+        const isFriendly = piece && piece.color === this.chess.turn;
+        const isSelectedMove = this.selectedSquare && activeLegalDests.includes(sq);
+
+        if (isFriendly || isSelectedMove) {
+          try { if (e.cancelable) e.preventDefault(); } catch (_) {}
+        }
+        handlePressStart(t.clientX, t.clientY, t.target);
       };
+
       const onTouchMove = (e) => {
-        if (activePointerId !== 9999 || !e.touches || e.touches.length === 0) return;
-        try { if (e.cancelable) e.preventDefault(); } catch (_) {}
+        if (!isTouchActive || !e.touches || e.touches.length === 0) return;
         const t = e.touches[0];
-        onPointerMove({
-          pointerId: 9999,
-          pointerType: 'touch',
-          clientX: t.clientX,
-          clientY: t.clientY,
-          preventDefault: () => {}
-        });
+        if (isDragging) {
+          try { if (e.cancelable) e.preventDefault(); } catch (_) {}
+        }
+        handlePressMove(t.clientX, t.clientY);
       };
+
       const onTouchEnd = (e) => {
-        if (activePointerId !== 9999) return;
-        try { if (e.cancelable) e.preventDefault(); } catch (_) {}
-        const t = (e.changedTouches && e.changedTouches.length > 0) ? e.changedTouches[0] : (e.touches && e.touches.length > 0 ? e.touches[0] : { clientX: startX, clientY: startY });
-        onPointerUp({
-          pointerId: 9999,
-          pointerType: 'touch',
-          clientX: t.clientX,
-          clientY: t.clientY
-        });
+        if (!isTouchActive) return;
+        isTouchActive = false;
+        const t = (e.changedTouches && e.changedTouches.length > 0) ? e.changedTouches[0] : (e.touches && e.touches.length > 0 ? e.touches[0] : null);
+        const cx = t ? t.clientX : lastX;
+        const cy = t ? t.clientY : lastY;
+        if (isDragging) {
+          try { if (e.cancelable) e.preventDefault(); } catch (_) {}
+        }
+        handlePressEnd(cx, cy);
+      };
+
+      const onTouchCancel = () => {
+        isTouchActive = false;
+        cleanupDrag();
       };
 
       this.boardElement.addEventListener('touchstart', onTouchStart, { passive: false });
       window.addEventListener('touchmove', onTouchMove, { passive: false });
       window.addEventListener('touchend', onTouchEnd, { passive: false });
-      window.addEventListener('touchcancel', cleanupDrag);
+      window.addEventListener('touchcancel', onTouchCancel);
+
+      // 2. Mouse / Pointer Events (Desktop & unified touch fallback)
+      const onPointerDown = (e) => {
+        if (Date.now() - lastTouchTime < 300) return; // Prevent double trigger from synthetic events
+        handlePressStart(e.clientX, e.clientY, e.target);
+      };
+
+      const onPointerMove = (e) => {
+        if (isTouchActive) return;
+        handlePressMove(e.clientX, e.clientY);
+      };
+
+      const onPointerUp = (e) => {
+        if (isTouchActive) return;
+        handlePressEnd(e.clientX, e.clientY);
+      };
+
+      this.boardElement.addEventListener('pointerdown', onPointerDown);
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+      window.addEventListener('blur', cleanupDrag);
 
       this._cleanupPointerListeners = () => {
         if (this.boardElement) {
-          this.boardElement.removeEventListener('pointerdown', onPointerDown);
           this.boardElement.removeEventListener('touchstart', onTouchStart);
+          this.boardElement.removeEventListener('pointerdown', onPointerDown);
         }
-        window.removeEventListener('pointermove', onPointerMove);
-        window.removeEventListener('pointerup', onPointerUp);
-        window.removeEventListener('pointercancel', onPointerCancel);
         window.removeEventListener('touchmove', onTouchMove);
         window.removeEventListener('touchend', onTouchEnd);
-        window.removeEventListener('touchcancel', cleanupDrag);
+        window.removeEventListener('touchcancel', onTouchCancel);
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
         window.removeEventListener('blur', cleanupDrag);
       };
     }

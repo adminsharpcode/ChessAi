@@ -50,6 +50,10 @@
 
 html {
   min-height: 100%;
+  height: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 body {
@@ -60,11 +64,14 @@ body {
   justify-content: center;
   align-items: flex-start;
   min-height: 100%;
+  min-height: 100dvh;
+  height: auto;
   width: 100%;
   margin: 0;
   padding: 0;
   overflow-x: hidden;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
@@ -90,6 +97,7 @@ body::-webkit-scrollbar-thumb {
   max-width: 520px;
   min-height: 100vh;
   min-height: 100dvh;
+  height: auto;
   background-color: var(--bg-primary);
   display: flex;
   flex-direction: column;
@@ -99,29 +107,35 @@ body::-webkit-scrollbar-thumb {
   border: none;
   border-radius: 0;
   padding-top: max(4px, env(safe-area-inset-top, 4px));
-  padding-bottom: 0;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  padding-bottom: max(90px, env(safe-area-inset-bottom, 30px));
+  overflow-y: visible;
+  scrollbar-width: none;
 }
 
 .device-container::-webkit-scrollbar {
-  width: 4px;
-}
-.device-container::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 4px;
+  display: none;
 }
 
-/* Native Android App Mode (Samsung Galaxy S26 Ultra & APK) */
+/* Native Android App Mode (Samsung Galaxy S26 Ultra & APK) - Freely & Smoothly Scrollable */
 html.is-native-app,
 html.is-native-app body,
 body.native-app-mode {
-  height: 100dvh;
-  max-height: 100dvh;
-  overflow: hidden;
-  touch-action: manipulation;
-  background: #121110;
+  min-height: 100%;
+  min-height: 100dvh;
+  height: auto !important;
+  max-height: none !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  background: #121110 !important;
   padding: 0;
+  margin: 0;
+  scrollbar-width: none;
+}
+
+html.is-native-app body::-webkit-scrollbar,
+body.native-app-mode::-webkit-scrollbar {
+  display: none;
 }
 
 html.is-native-app .device-container,
@@ -130,10 +144,11 @@ body.native-app-mode .device-container {
   border: none;
   box-shadow: none;
   max-width: 520px;
-  height: 100dvh;
-  max-height: 100dvh;
-  overflow-y: auto;
-  scrollbar-width: none;
+  min-height: 100dvh;
+  height: auto !important;
+  max-height: none !important;
+  overflow-y: visible !important;
+  padding-bottom: max(120px, env(safe-area-inset-bottom, 40px)) !important;
 }
 
 html.is-native-app .device-container::-webkit-scrollbar,

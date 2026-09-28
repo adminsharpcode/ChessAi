@@ -21,3 +21,4 @@ Thumbs.db
 # Temporary media storage
 .tempmediaStorage/
 .user_uploaded/
+photo_*.jpg

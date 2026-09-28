@@ -256,18 +256,19 @@
         });
       });
 
-      // 6. Touch Swipe Gesture for Moving Front and Back
+      // 6. Touch Swipe Gesture for Navigation (on Coach Dialogue Card, NOT on board)
       let touchStartX = 0;
       let touchStartY = 0;
-      if (boardContainer) {
-        boardContainer.addEventListener('touchstart', (e) => {
+      const dialogueBox = document.getElementById('dialogueBox');
+      if (dialogueBox) {
+        dialogueBox.addEventListener('touchstart', (e) => {
           if (e.touches.length === 1) {
             touchStartX = e.touches[0].clientX;
             touchStartY = e.touches[0].clientY;
           }
         }, { passive: true });
 
-        boardContainer.addEventListener('touchend', (e) => {
+        dialogueBox.addEventListener('touchend', (e) => {
           if (e.changedTouches.length === 1) {
             const dx = e.changedTouches[0].clientX - touchStartX;
             const dy = e.changedTouches[0].clientY - touchStartY;
