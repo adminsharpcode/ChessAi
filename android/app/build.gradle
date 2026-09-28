@@ -1,0 +1,47 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.xcodechess.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.xcodechess.app"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+
+        manifestPlaceholders = [
+            developerName: "XCODE-Vedant Nimkar"
+        ]
+    }
+
+    signingConfigs {
+        release {
+            storeFile file("../xcodechess-release.keystore")
+            storePassword "xcodechess123"
+            keyAlias "xcodechess"
+            keyPassword "xcodechess123"
+            v1SigningEnabled true
+            v2SigningEnabled true
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            signingConfig signingConfigs.release
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.webkit:webkit:1.9.0'
+}

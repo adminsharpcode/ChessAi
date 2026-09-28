@@ -1,0 +1,23 @@
+# Node dependencies
+node_modules/
+npm-debug.log*
+
+# Android build outputs & caches
+.gradle/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/*.iml
+android/app/*.iml
+
+# System & IDE files
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Temporary media storage
+.tempmediaStorage/
+.user_uploaded/

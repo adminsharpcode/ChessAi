@@ -1,0 +1,9 @@
+﻿<resources>
+    <style name="Theme.XCodeChess" parent="@android:style/Theme.NoTitleBar">
+        <item name="android:windowBackground">@color/primary_dark</item>
+    </style>
+    <style name="Theme.XCodeChess.Fullscreen" parent="Theme.XCodeChess">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+</resources>

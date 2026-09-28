@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#121110">
+  <meta name="color-scheme" content="dark">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Authentic Chess.com AI Game Review with Deep Tactical Explanations, Future Move Analysis, and Move Classification.">
+  <title>XCodeChess - Game Review & AI Coach</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/logo-icon.png">
+  <link rel="manifest" href="manifest.json">
+  <script>
+    if (navigator.userAgent.indexOf('XCodeChessNativeApp') !== -1 || window.isNativeApp) {
+      document.documentElement.classList.add('is-native-app');
+    }
+  </script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="device-container" id="deviceContainer">
+    <!-- App Top Bar (Sleek High-End Mobile Navigation) -->
+    <header class="app-header">
+      <div class="header-left">
+        <button class="icon-btn" id="btnBack" title="Back to Games">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+        </button>
+        <div class="brand-box">
+          <img src="assets/logo-mark-white.png" alt="XCodeChess Logo" class="brand-header-logo">
+          <h1 class="header-title">XCodeChess</h1>
+          <button class="engine-badge clickable" id="engineStatusBadge" title="Click to Change Stockfish Elo Strength">⚡ 2000 Elo</button>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <a href="/XCodeChess-v1.0.0-release.apk" download="XCodeChess-v1.0.0-release.apk" class="apk-header-badge desktop-only-badge" title="Download Android APK (Signed by XCODE-Vedant Nimkar)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <span>APK</span>
+        </a>
+        <button class="icon-btn" id="btnOpenStats" title="Accuracy & Game Summary">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <circle cx="12" cy="12" r="6"></circle>
+            <circle cx="12" cy="12" r="2"></circle>
+          </svg>
+        </button>
+        <button class="icon-btn" id="btnOpenSettings" title="Settings & PGN Upload">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ==============================================
+         COACH AREA: AVATAR + WHITE SPEECH BUBBLE (TOP OF BOARD)
+         ============================================== -->
+    <section class="coach-review-area">
+      <!-- Coach Avatar (Matching Reference Screenshot) -->
+      <div class="coach-avatar-container">
+        <svg class="coach-avatar-svg" viewBox="0 0 120 135" xmlns="http://www.w3.org/2000/svg">
+          <!-- Dark hair -->
+          <path d="M 30 50 Q 25 15 60 15 Q 95 15 90 50 Z" fill="#2b2622" />
+          <!-- Face -->
+          <ellipse cx="60" cy="58" rx="28" ry="32" fill="#c98a58" />
+          <!-- Hair top fringe -->
+          <path d="M 32 40 Q 60 25 88 40 Q 60 30 32 40 Z" fill="#1f1b18" />
+          <!-- Glasses -->
+          <rect x="38" y="48" width="18" height="13" rx="3" fill="none" stroke="#1f1f1f" stroke-width="2.8" />
+          <rect x="64" y="48" width="18" height="13" rx="3" fill="none" stroke="#1f1f1f" stroke-width="2.8" />
+          <line x1="56" y1="54" x2="64" y2="54" stroke="#1f1f1f" stroke-width="2.5" />
+          <!-- Eyes behind glasses -->
+          <circle cx="47" cy="54" r="2.5" fill="#222" />
+          <circle cx="73" cy="54" r="2.5" fill="#222" />
+          <!-- Friendly Smile -->
+          <path d="M 49 72 Q 60 82 71 72" fill="none" stroke="#522a16" stroke-width="2.5" stroke-linecap="round" />
+          <path d="M 52 73 Q 60 80 68 73 Z" fill="#ffffff" />
+          <!-- Burgundy Shirt & Blazer -->
+          <path d="M 22 135 L 28 92 L 60 92 L 92 92 L 98 135 Z" fill="#2d2238" />
+          <path d="M 44 92 L 60 115 L 76 92 Z" fill="#93335b" />
+          <path d="M 54 92 L 60 102 L 66 92 Z" fill="#ffffff" />
+        </svg>
+      </div>
+
+      <!-- The Authentic White Speech Bubble -->
+      <div class="coach-speech-bubble" id="coachBubble">
+        <div class="bubble-top-row">
+          <div class="bubble-badge-group">
+            <span class="bubble-badge-icon" id="bubbleBadgeIcon">📖</span>
+            <span class="bubble-title-text" id="bubbleTitleText">2...Nc6 is a book move</span>
+          </div>
+          <span class="bubble-eval-pill" id="bubbleEvalPill">+0.30</span>
+        </div>
+        <p class="bubble-desc-text" id="bubbleDescText">This develops and helps to control the central dark squares.</p>
+        <div class="bubble-continuation-text" id="bubbleContinuationText"></div>
+      </div>
+    </section>
+
+    <!-- ==============================================
+         TACTICAL NOTIFICATION & SHOW SLIDESHOW PANEL (BELOW DIALOGUE BOX)
+         ============================================== -->
+    <div class="tactical-zone-container" id="tacticalZoneContainer">
+      <!-- 1. Automatic Notification Banner -->
+      <div class="tactical-notice-banner" id="tacticalNoticeBanner" style="display: none;">
+        <div class="tactical-notice-content">
+          <span class="tactical-notice-icon" id="tacticalNoticeIcon">⚡</span>
+          <div class="tactical-notice-texts">
+            <span class="tactical-notice-title" id="tacticalNoticeTitle">Forced Checkmate sequence spotted!</span>
+            <span class="tactical-notice-desc" id="tacticalNoticeDesc">Engine found a decisive mating attack ahead.</span>
+          </div>
+        </div>
+        <button class="tactical-notice-btn" id="btnNoticePreview">
+          <span>Show</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+      </div>
+
+      <!-- 2. Interactive Slideshow Panel -->
+      <div class="tactical-show-panel" id="tacticalShowPanel" style="display: none;">
+        <div class="show-panel-top">
+          <div class="show-panel-badge-group">
+            <span class="show-category-badge" id="showCategoryBadge">⚔️ 3 CAPTURES</span>
+            <span class="show-panel-headline" id="showPanelHeadline">Tactical Exchange Sequence</span>
+          </div>
+          <button class="show-panel-close-btn" id="btnCloseShowPanel" title="Close Panel">✕</button>
+        </div>
+
+        <!-- Stepper Slideshow Timeline -->
+        <div class="show-stepper-timeline" id="showStepperTimeline"></div>
+
+        <!-- Current Step Card -->
+        <div class="show-step-card">
+          <div class="show-step-info">
+            <span class="show-step-num" id="showStepNum">Move 1 of 4</span>
+            <span class="show-step-action" id="showStepAction">💥 White captures Knight on e5</span>
+          </div>
+          <div class="show-step-detail" id="showStepDetail">Nxe5 eliminates key defender and attacks Queen.</div>
+        </div>
+
+        <!-- Slideshow Controls Toolbar -->
+        <div class="show-slideshow-toolbar">
+          <button class="show-tool-btn" id="btnSlideFirst" title="First Move">⏮️</button>
+          <button class="show-tool-btn" id="btnSlidePrev" title="Previous Move">◀</button>
+          <button class="show-tool-btn show-tool-play" id="btnSlidePlay" title="Auto-Play (600ms) / Pause">
+            <span id="slidePlayIcon">▶</span>
+            <span id="slidePlayLabel">Play</span>
+          </button>
+          <button class="show-tool-btn" id="btnSlideNext" title="Next Move">▶</button>
+          <button class="show-tool-btn" id="btnSlideLast" title="Last Move">⏭️</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==============================================
+         BOARD AREA & EXPLORING BANNER
+         ============================================== -->
+    <main class="board-container-outer">
+      <!-- Exploring Variation Banner (shown when moving pieces during review) -->
+      <div class="exploring-banner" id="exploringBanner" style="display: none;">
+        <span id="exploringText">🔍 Exploring Variation</span>
+        <div style="display: flex; gap: 6px;">
+          <button class="resume-btn" id="btnEngineReply" title="Let Stockfish play the opponent's reply" style="background: var(--bg-tertiary);">
+            🤖 Engine Reply
+          </button>
+          <button class="resume-btn" id="btnResumeReview" title="Return to reviewed game">
+            ↩ Resume Review
+          </button>
+        </div>
+      </div>
+
+      <div id="boardWrapper"></div>
+    </main>
+
+    <!-- ==============================================
+         MOVE STRIP (HORIZONTAL RIBBON UNDER THE BOARD)
+         ============================================== -->
+    <div class="move-ribbon-container" id="moveRibbonContainer">
+      <!-- Populated dynamically by app.js (e.g. c5  2. Nc3  2...Nc6  3. Nf3  e6 >) -->
+    </div>
+
+    <!-- ==============================================
+         AUTHENTIC CHESS.COM EVALUATION & ADVANTAGE GRAPH
+         ============================================== -->
+    <div class="eval-graph-container" id="evalGraphContainer"></div>
+
+    <!-- ==============================================
+         PLAYBACK NAVIGATION CONTROLS (MOVE FRONT & BACK)
+         ============================================== -->
+    <div class="playback-controls-bar" id="playbackControlsBar">
+      <button class="nav-control-btn" id="btnNavFirst" title="First Move (Home)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="19 20 9 12 19 4 19 20"></polygon>
+          <line x1="5" y1="19" x2="5" y2="5"></line>
+        </svg>
+      </button>
+
+      <button class="nav-control-btn" id="btnNavPrev" title="Previous Move (Left Arrow)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+        <span>Prev</span>
+      </button>
+
+      <button class="nav-control-btn" id="btnFlipBoard" title="Flip Board (Switch Black/White)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16"/>
+        </svg>
+      </button>
+
+      <button class="nav-control-btn nav-btn-highlight" id="btnNavNext" title="Next Move (Right Arrow / Space)">
+        <span>Next</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+
+      <button class="nav-control-btn" id="btnNavLast" title="Last Move (End)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="5 4 15 12 5 20 5 4"></polygon>
+          <line x1="19" y1="5" x2="19" y2="19"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- ==============================================
+         BOTTOM ACTION BAR (EXACT SCREENSHOT BUTTONS)
+         ============================================== -->
+    <footer class="bottom-action-bar">
+      <!-- Show / Hide Future Analysis Button -->
+      <button class="action-tab-btn" id="btnShowFuture" title="Show Future Continuation Analysis">
+        <span class="action-tab-icon">♟️?</span>
+        <span id="labelShowFuture">Show</span>
+      </button>
+
+      <!-- Best Move Button -->
+      <button class="action-tab-btn" id="btnShowBest" title="Show Best Move">
+        <span class="action-tab-icon">🔍</span>
+        <span>Best</span>
+      </button>
+
+      <!-- Retry Button -->
+      <button class="action-tab-btn" id="btnRetryAction" title="Retry this move">
+        <span class="action-tab-icon">↻</span>
+        <span>Retry</span>
+      </button>
+
+      <!-- Big Green Next / Resume Button -->
+      <button class="btn-next-action" id="btnNextAction">
+        Next
+      </button>
+    </footer>
+
+    <!-- ==============================================
+         MODAL 1: GAME ACCURACY & BADGES SUMMARY (TARGET ICON)
+         ============================================== -->
+    <div class="modal-overlay" id="modalStats">
+      <div class="modal-header">
+        <h2 class="modal-title">Game Accuracy & Badges</h2>
+        <button class="modal-close-btn" id="btnCloseStats">✕</button>
+      </div>
+
+      <div class="accuracy-grid">
+        <div class="acc-card">
+          <span class="acc-player" id="summaryWhiteName">⚪ White</span>
+          <span class="acc-number" id="statWhiteAccuracy">--%</span>
+          <span class="acc-elo" id="statWhiteElo">~1500 Elo</span>
+        </div>
+        <div class="acc-card">
+          <span class="acc-player" id="summaryBlackName">⚫ Black</span>
+          <span class="acc-number" id="statBlackAccuracy">--%</span>
+          <span class="acc-elo" id="statBlackElo">~1500 Elo</span>
+        </div>
+      </div>
+
+      <table class="stats-table">
+        <thead>
+          <tr>
+            <th>Badge</th>
+            <th style="text-align: center;">White</th>
+            <th style="text-align: center;">Black</th>
+          </tr>
+        </thead>
+        <tbody id="badgeStatsBody">
+          <!-- Populated dynamically -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ==============================================
+         MODAL 2: SETTINGS & PGN UPLOAD (GEAR ICON)
+         ============================================== -->
+    <div class="modal-overlay" id="modalSettings">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <img src="assets/logo-mark-white.png" alt="XCodeChess" style="height:24px; width:auto;">
+          <h2 class="modal-title">XCodeChess Settings</h2>
+        </div>
+        <button class="modal-close-btn" id="btnCloseSettings">✕</button>
+      </div>
+
+      <!-- Stockfish Changeable Elo Control -->
+      <div class="settings-group elo-settings-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <label class="settings-label" style="margin: 0; font-size: 13.5px; font-weight: 700;">
+            ⚡ Stockfish Playing Strength
+          </label>
+          <span class="elo-badge-display" id="eloCurrentDisplay">2000 Elo (Expert)</span>
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">
+          Adjust Stockfish Elo from Beginner (800) to Maximum GM (3200+). Changes apply instantly to reviews and live board variations!
+        </p>
+
+        <!-- Elo Slider -->
+        <input type="range" class="elo-slider" id="stockfishEloSlider" min="800" max="3200" step="50" value="2000">
+
+        <!-- Elo Presets -->
+        <div class="elo-presets-grid">
+          <button class="elo-pill-btn" data-elo="800">🟢 800 (Beginner)</button>
+          <button class="elo-pill-btn" data-elo="1200">🟡 1200 (Casual)</button>
+          <button class="elo-pill-btn" data-elo="1600">🔵 1600 (Club)</button>
+          <button class="elo-pill-btn active" data-elo="2000">🟣 2000 (Expert)</button>
+          <button class="elo-pill-btn" data-elo="2400">👑 2400 (Master)</button>
+          <button class="elo-pill-btn" data-elo="3200">⚡ 3200 (Max Engine)</button>
+        </div>
+      </div>
+
+      <!-- Piece Move Animation Speed Settings -->
+      <div class="settings-group speed-settings-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <label class="settings-label" style="margin: 0; font-size: 13.5px; font-weight: 700;">
+            ♟️ Piece Move Animation Speed
+          </label>
+          <span class="speed-badge-display" id="speedCurrentDisplay">Mid (220ms)</span>
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">
+          Control how smoothly and fast pieces glide across the board on every move.
+        </p>
+        <div class="speed-presets-grid">
+          <button class="speed-pill-btn" data-speed="slow">🐢 Slow (360ms)</button>
+          <button class="speed-pill-btn active" data-speed="mid">⚡ Mid (220ms)</button>
+          <button class="speed-pill-btn" data-speed="fast">🚀 Fast (130ms)</button>
+          <button class="speed-pill-btn" data-speed="off">⏹️ Instant (Off)</button>
+        </div>
+      </div>
+
+      <!-- Android APK Release & Developer Card -->
+      <div class="settings-group">
+        <div class="apk-developer-card">
+          <div class="apk-card-header">
+            <img src="assets/logo-icon.png" alt="XCodeChess App Icon" class="apk-app-icon">
+            <div class="apk-title-box">
+              <div class="apk-title">
+                XCodeChess <span class="apk-version-badge">v1.0.0 APK</span>
+              </div>
+              <div class="apk-developer-tag">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                Developer: XCODE-Vedant Nimkar
+              </div>
+            </div>
+          </div>
+
+          <div class="apk-details-grid">
+            <div class="apk-detail-item">
+              <span class="apk-detail-label">PACKAGE</span>
+              <span class="apk-detail-val">com.xcodechess.app</span>
+            </div>
+            <div class="apk-detail-item">
+              <span class="apk-detail-label">SIGNATURE</span>
+              <span class="apk-detail-val">Signed & Verified ✓</span>
+            </div>
+            <div class="apk-detail-item">
+              <span class="apk-detail-label">ENGINE</span>
+              <span class="apk-detail-val">Stockfish (Offline)</span>
+            </div>
+            <div class="apk-detail-item">
+              <span class="apk-detail-label">APK SIZE</span>
+              <span class="apk-detail-val">3.07 MB</span>
+            </div>
+          </div>
+
+          <a href="/XCodeChess-v1.0.0-release.apk" download="XCodeChess-v1.0.0-release.apk" class="apk-download-btn" id="btnDownloadApk">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download Signed Android APK
+          </a>
+        </div>
+      </div>
+
+      <!-- Upload PGN -->
+      <div class="settings-group">
+        <label class="settings-label">📁 Upload Your Game (PGN File)</label>
+        <input type="file" id="pgnFileInput" accept=".pgn,.txt" style="display: none;">
+        <button class="action-tab-btn" style="background: var(--bg-tertiary); padding: 10px; border-radius: 8px;" onclick="document.getElementById('pgnFileInput').click();">
+          Tap to Select .PGN File from Device
+        </button>
+      </div>
+
+      <!-- Paste PGN -->
+      <div class="settings-group">
+        <label class="settings-label">Or Paste PGN Moves:</label>
+        <textarea class="settings-textarea" id="pgnTextInput" placeholder="Paste PGN here (e.g. 1. e4 e5 2. Nf3 Nc6...)"></textarea>
+        <button class="btn-next-action" id="btnAnalyzePGN" style="height: 42px; font-size: 15px;">
+          Start AI Game Review
+        </button>
+      </div>
+
+      <!-- Setup New Manual Game Button -->
+      <div class="settings-group">
+        <button class="btn-setup-game" id="btnSetupNewGame">
+          ♟️ Set Up / Play New Custom Game
+        </button>
+      </div>
+
+      <!-- Magnus Carlsen 7,818 Games Feature -->
+      <div class="settings-group">
+        <button class="carlsen-feature-btn" id="btnOpenCarlsenModal">
+          👑 Magnus Carlsen Database (7,818 Games)
+        </button>
+      </div>
+
+      <!-- Sample Games -->
+      <div class="settings-group">
+        <label class="settings-label">Or Try Famous Classics:</label>
+        <div class="samples-pills">
+          <button class="sample-pill-btn" data-sample="opera">🎭 Morphy Opera House</button>
+          <button class="sample-pill-btn" data-sample="blunder">🤦 Fork & Blunder Game</button>
+          <button class="sample-pill-btn" data-sample="fischer">💥 Fischer Game of Century</button>
+        </div>
+      </div>
+
+      <!-- Voice & Audio -->
+      <div class="settings-group">
+        <label class="settings-label">Coach Narration:</label>
+        <button class="sample-pill-btn" id="btnVoiceToggle">
+          🔊 Toggle Coach Voice Narration
+        </button>
+      </div>
+
+      <!-- Free Gemini API Key (Optional) -->
+      <div class="settings-group">
+        <label class="settings-label">Optional Free Gemini API Key (for Custom AI responses):</label>
+        <input type="password" class="settings-input" id="apiKeyInput" placeholder="Paste Gemini API key (optional)">
+      </div>
+
+      <!-- Ask Coach Q&A Box -->
+      <div class="settings-group">
+        <label class="settings-label">Ask Coach Anything:</label>
+        <div class="coach-qa-box">
+          <div class="qa-log" id="coachChatLog">
+            <div>🧑‍🏫 Ask me any tactical question about the current game!</div>
+          </div>
+          <form id="coachChatForm" style="display: flex; gap: 6px; margin-top: 6px;">
+            <input type="text" class="settings-input" id="coachQuestionInput" placeholder="Ask a question..." style="flex: 1; padding: 6px 10px;">
+            <button type="submit" class="btn-next-action" style="width: 44px; height: 36px; font-size: 14px;">➤</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==============================================
+         MODAL 3: MAGNUS CARLSEN GAMES EXPLORER (7,818 GAMES)
+         ============================================== -->
+    <div class="modal-overlay" id="modalCarlsenGames">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <img src="assets/logo-mark-white.png" alt="XCodeChess" style="height:24px; width:auto;">
+          <h2 class="modal-title">Magnus Carlsen Games</h2>
+        </div>
+        <button class="modal-close-btn" id="btnCloseCarlsen">✕</button>
+      </div>
+
+      <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">
+        Browse through 7,818 career games from your Carlsen database. Tap any game to start Stockfish Game Review!
+      </p>
+
+      <div class="settings-group" style="margin-bottom:8px;">
+        <input type="text" class="settings-input" id="carlsenSearchInput" placeholder="Search opponent, year, or event (e.g. Nakamura, Anand, 2023)...">
+      </div>
+
+      <div class="samples-pills" style="margin-bottom: 12px;">
+        <button class="sample-pill-btn" data-cfilter="Nakamura">vs Nakamura</button>
+        <button class="sample-pill-btn" data-cfilter="Anand">vs Anand</button>
+        <button class="sample-pill-btn" data-cfilter="Caruana">vs Caruana</button>
+        <button class="sample-pill-btn" data-cfilter="World">World Champ</button>
+        <button class="sample-pill-btn" data-cfilter="2023">2023 Games</button>
+        <button class="sample-pill-btn" data-cfilter="">All Games</button>
+      </div>
+
+      <div class="carlsen-games-container" id="carlsenGamesList">
+        <div style="text-align:center; padding:20px; color:var(--text-muted);">Loading Carlsen games...</div>
+      </div>
+    </div>
+
+    <!-- ==============================================
+         MODAL 4: GAME OVER / CHECKMATE VICTORY POPUP
+         ============================================== -->
+    <div class="modal-overlay game-over-overlay" id="modalGameOver">
+      <div class="game-over-card">
+        <button class="modal-close-btn game-over-close-btn" id="btnCloseGameOver">✕</button>
+
+        <div class="game-over-icon-box">
+          <div class="trophy-badge" id="gameOverIcon">🏆</div>
+        </div>
+
+        <div class="game-over-winner-title" id="gameOverWinnerTitle">White won by Checkmate!</div>
+        <div class="game-over-subtitle" id="gameOverSubtitle">Checkmate delivered in 14 moves.</div>
+
+        <div class="game-over-stats-pill">
+          <span class="res-badge" id="gameOverResultBadge">1 - 0</span>
+          <span class="game-over-moves-count" id="gameOverMovesCount">14 Moves Played</span>
+        </div>
+
+        <div class="game-over-actions">
+          <button class="btn-game-over-review" id="btnGameOverStartReview">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            <span>✨ Start AI Game Review</span>
+          </button>
+
+          <button class="btn-game-over-secondary" id="btnGameOverNewGame">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+            </svg>
+            <span>Set Up / New Game</span>
+          </button>
+
+          <button class="btn-game-over-tertiary" id="btnGameOverInspect">
+            <span>Inspect Board</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/chess.js"></script>
+  <script src="js/openings.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/classifier.js"></script>
+  <script src="js/coach.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/board.js"></script>
+  <script src="js/graph.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
